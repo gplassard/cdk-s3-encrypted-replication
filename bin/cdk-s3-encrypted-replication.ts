@@ -8,6 +8,7 @@ import {SharedProps} from '../lib/SharedProps';
 const app = new cdk.App();
 
 const props: SharedProps = {
+    firstDeployment: false,
     destinationAccount: process.env.CDK_DEFAULT_ACCOUNT!,
     destinationBucketName: 'azertyuiop-destination-bucket',
     destinationKeyAlias: 'destination-key',

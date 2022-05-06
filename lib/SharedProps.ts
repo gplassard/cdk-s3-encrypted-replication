@@ -1,4 +1,6 @@
 export interface SharedProps {
+    firstDeployment: boolean
+
     destinationAccount: string
     destinationBucketName: string
     destinationKeyAlias: string
