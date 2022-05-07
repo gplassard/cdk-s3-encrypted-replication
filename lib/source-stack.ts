@@ -3,18 +3,21 @@ import {Construct} from 'constructs';
 import {Key} from 'aws-cdk-lib/aws-kms';
 import {Bucket, CfnBucket, ObjectOwnership} from 'aws-cdk-lib/aws-s3';
 import {PolicyDocument, PolicyStatement, Role, ServicePrincipal} from 'aws-cdk-lib/aws-iam';
-import {SharedProps} from './SharedProps';
+import {DestinationConfig, SourceConfig} from './SharedProps';
 import {Trail} from 'aws-cdk-lib/aws-cloudtrail';
 import {Topic} from 'aws-cdk-lib/aws-sns';
 
-
+export interface SourceStackProps {
+  source: SourceConfig
+  destination: DestinationConfig
+}
 export class SourceStack extends Stack {
 
-  constructor(scope: Construct, id: string, props: SharedProps & StackProps) {
+  constructor(scope: Construct, id: string, props: SourceStackProps & StackProps) {
     super(scope, id, props);
 
     const sourceKey = new Key(this, 'key', {
-      alias: props.sourceKeyAlias,
+      alias: props.source.keyAlias,
       enableKeyRotation: false,
       pendingWindow: Duration.days(7),
       removalPolicy: RemovalPolicy.DESTROY,
@@ -50,7 +53,7 @@ export class SourceStack extends Stack {
     }));
 
     const sourceBucket = new Bucket(this, 'bucket', {
-      bucketName: props.sourceBucketName,
+      bucketName: props.source.bucketName,
       encryptionKey: sourceKey,
       objectOwnership: ObjectOwnership.BUCKET_OWNER_ENFORCED,
       versioned: true,
@@ -59,7 +62,7 @@ export class SourceStack extends Stack {
     });
 
     const replicationRole = new Role(this, 'replicationRole', {
-      roleName: props.sourceRoleName,
+      roleName: props.source.replicationRoleName,
       assumedBy: new ServicePrincipal('s3.amazonaws.com'),
       inlinePolicies: {
         'replication-rights': new PolicyDocument({
@@ -97,22 +100,22 @@ export class SourceStack extends Stack {
       }
     });
 
-    if (!props.firstDeployment) {
+    if (!props.source.firstDeployment) {
       // the source stack has to be deployed before the destination stack, because the destination stack references the replication role
       // but the replication configuration can't be deployed before the destination bucket & the kms key exist
       // so deploy the source stack without replication, then the destination stack, and redeploy the source stack with replication
       const cfnBucket = sourceBucket.node.defaultChild as CfnBucket;
       cfnBucket.replicationConfiguration = {
-        role: `arn:aws:iam::${this.account}:role/${props.sourceRoleName}`,
+        role: `arn:aws:iam::${this.account}:role/${props.source.replicationRoleName}`,
         rules: [
           {
             id: 'replication',
             status: 'Enabled',
             destination: {
-              bucket: `arn:aws:s3:::${props.destinationBucketName}`,
-              account: props.destinationAccount,
+              bucket: `arn:aws:s3:::${props.destination.bucketName}`,
+              account: props.destination.accountId,
               encryptionConfiguration: {
-                replicaKmsKeyId: `arn:aws:kms:${this.region}:${this.account}:alias/${props.destinationKeyAlias}`
+                replicaKmsKeyId: `arn:aws:kms:${this.region}:${props.destination.accountId}:alias/${props.destination.keyAlias}`
               }
             },
             sourceSelectionCriteria: {

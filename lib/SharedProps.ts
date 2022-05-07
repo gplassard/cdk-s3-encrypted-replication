@@ -1,12 +1,14 @@
-export interface SharedProps {
+export interface SourceConfig {
     firstDeployment: boolean
-
-    destinationAccount: string
-    destinationBucketName: string
-    destinationKeyAlias: string
-
-    sourceAccount: string
-    sourceBucketName: string
-    sourceKeyAlias: string
-    sourceRoleName: string
+    accountId: string
+    bucketName: string
+    keyAlias: string
+    replicationRoleName: string
 }
+
+export interface DestinationConfig {
+    accountId: string
+    bucketName: string
+    keyAlias: string
+}
+

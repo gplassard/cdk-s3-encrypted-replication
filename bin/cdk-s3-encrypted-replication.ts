@@ -2,38 +2,41 @@
 import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import {SourceStack} from '../lib/source-stack';
-import {DestinationStack} from '../lib/destination-stack';
-import {SharedProps} from '../lib/SharedProps';
+import {DestinationStack, DestinationStackProps} from '../lib/destination-stack';
 
 const app = new cdk.App();
 
-const props: SharedProps = {
-    firstDeployment: false,
-    destinationAccount: process.env.CDK_DEFAULT_ACCOUNT!,
-    destinationBucketName: 'azertyuiop-destination-bucket',
-    destinationKeyAlias: 'destination-key',
-    sourceAccount: process.env.CDK_DEFAULT_ACCOUNT!,
-    sourceBucketName: 'azertyuiop-source-bucket',
-    sourceKeyAlias: 'source-key',
-    sourceRoleName: 'replication-role'
+export type Config = DestinationStackProps;
+const config: Config = {
+    sources: [
+        {
+            accountId: process.env.CDK_DEFAULT_ACCOUNT!,
+            replicationRoleName: 'replication-role',
+            keyAlias: 'source-key',
+            bucketName: 'azertyuiop-source-bucket',
+            firstDeployment: false,
+        },
+        {
+            accountId: process.env.CDK_DEFAULT_ACCOUNT!,
+            replicationRoleName: 'replication-role-2',
+            keyAlias: 'source-key-2',
+            bucketName: 'azertyuiop-source-bucket-2',
+            firstDeployment: false,
+        }
+    ],
+    destination: {
+        bucketName: 'azertyuiop-destination-bucket',
+        keyAlias: 'destination-key',
+        accountId: process.env.CDK_DEFAULT_ACCOUNT!,
+    }
 }
-
-new SourceStack(app, 'sourceStack', {
-    ...props,
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
-
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
-
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
-
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
-});
+for (let i = 0; i < config.sources.length; i++) {
+    new SourceStack(app, `source-stack-${i}`, {
+        source: config.sources[i],
+        destination: config.destination,
+        env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+    });
+}
 new DestinationStack(app, 'destinationStack', {
-    ...props,
+    ...config,
 });
